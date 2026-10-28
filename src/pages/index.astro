@@ -663,8 +663,8 @@ const allRoles = entries.flatMap((e) => e.roles);
       const role = `the ${title} role at ${company}${req ? ` (${req})` : ''}`;
       // Wishlist roles ask for an introduction before applying
       const ask = wish
-        ? `A friend of mine, ${profile.name}, is planning to apply for ${role} and would love an introduction before she does. ${profile.blurb} Would you be open to a quick chat with her, or referring her?`
-        : `A friend of mine, ${profile.name}, applied for ${role}. ${profile.blurb} Would you be open to taking a look or passing her resume along?`;
+        ? `I'm connected with ${profile.name}, who is planning to apply for ${role} and would love an introduction before she does. ${profile.blurb} Would you be open to a quick chat with her, or referring her?`
+        : `I'm connected with ${profile.name}, who applied for ${role}. ${profile.blurb} Would you be open to taking a look or passing her resume along?`;
       blurb.value = `Hi! ${ask}\n\nResume: ${profile.resume}\nPortfolio: ${profile.portfolio}`;
       mail.href = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(profile.email)}&su=${encodeURIComponent(`I know someone at ${company}`)}`;
       copied.textContent = '';
