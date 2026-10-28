@@ -1,0 +1,686 @@
+---
+import Base from '../layouts/Base.astro';
+import RoleEntry from '../components/RoleEntry.astro';
+import { profile } from '../profile';
+import { wishlist } from '../wishlist';
+import type { Entry } from '../issues/types';
+
+const files = import.meta.glob<{ default: Entry }>('../issues/*.ts', { eager: true });
+const entries = Object.entries(files)
+  .filter(([path]) => !path.endsWith('types.ts'))
+  .map(([, m]) => m.default)
+  .sort((a, b) => b.weekOf.localeCompare(a.weekOf));
+const [current, ...past] = entries;
+
+const fmt = (iso: string, opts: Intl.DateTimeFormatOptions) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', opts);
+const weekLong = (iso: string) => fmt(iso, { month: 'long', day: 'numeric', year: 'numeric' });
+const anchor = (iso: string) => `week-${fmt(iso, { month: 'short' }).toLowerCase()}-${fmt(iso, { day: 'numeric' })}`;
+
+// Gmail's web compose window, so "email me" works without a desktop mail app.
+const gmail = (subject: string) =>
+  `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(profile.email)}&su=${encodeURIComponent(subject)}`;
+
+const allRoles = entries.flatMap((e) => e.roles);
+---
+
+<Base>
+  <div class="wrap">
+    <div class="topbar">
+      <span class="script hello">hello there ♡</span>
+      <button type="button" class="theme" aria-label="Switch between light and dark">moon</button>
+    </div>
+
+    <div class="layout">
+    <div class="side">
+    <header class="cover">
+      <span class="tape tape-l" aria-hidden="true"></span>
+      <span class="tape tape-r" aria-hidden="true"></span>
+      <div class="cover-left">
+      <p class="owner script">{profile.name}’s</p>
+      <h1>Job Hunt Journal</h1>
+      <p class="sub">A weekly record of the roles I’ve applied to, and how I could help each team.</p>
+      <div class="flourish" aria-hidden="true">✿ · ❀ · ✿</div>
+      <p class="about">{profile.about}</p>
+      </div>
+      <div class="cover-right">
+      <ul class="tracks">{profile.tracks.map((t) => <li>{t}</li>)}</ul>
+      <div class="cover-actions">
+        <a class="btn btn-accent" href={profile.resume} target="_blank" rel="noopener">Resume</a>
+        <a class="btn" href={profile.portfolio} target="_blank" rel="noopener">Portfolio</a>
+        <a class="btn" href={profile.linkedin} target="_blank" rel="noopener">LinkedIn</a>
+      </div>
+      <dl class="stats">
+        <div><dt>{allRoles.length}</dt><dd>applied</dd></div>
+        <div><dt>{wishlist.length}</dt><dd>wishlist</dd></div>
+        <div><dt>{entries.length}</dt><dd>weeks</dd></div>
+      </dl>
+      </div>
+    </header>
+
+    <div class="note-card">
+      <p class="script note-title">a little note</p>
+      <p>
+        If you know someone at any of these companies, an introduction to an engineer on the team, a hiring manager or a
+        recruiter would mean the world. Tap <b>Know someone here?</b> on a role for a ready-made message you can send in
+        seconds.
+      </p>
+      <p class="thanks">Thank you to everyone who has already shared roles and made introductions. You know who you are ♡</p>
+    </div>
+
+    <nav class="pages-index" aria-label="Journal pages">
+      <p class="script note-title">pages</p>
+      <ul>
+        {
+          wishlist.length > 0 && (
+            <li>
+              <a href="#wishlist">Wishlist</a>
+              <span class="mono">{wishlist.length} roles</span>
+            </li>
+          )
+        }
+        {
+          entries.map((e) => (
+            <li>
+              <a href={`#${anchor(e.weekOf)}`}>Week of {fmt(e.weekOf, { month: 'short', day: 'numeric' })}</a>
+              <span class="mono">{e.roles.length} roles</span>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+    </div>
+
+    <main class="main">
+
+    {
+      wishlist.length > 0 && (
+        <section class="entry sheet wish" id="wishlist">
+          <span class="tape tape-c tape-lilac" aria-hidden="true" />
+          <div class="entry-head">
+            <p class="date script">my wishlist</p>
+            <span class="entry-no mono">{wishlist.length} roles · not applied yet</span>
+          </div>
+          <h2>Roles I’d love an introduction for</h2>
+          <p class="entry-note">
+            A referral helps most before I apply. If you know someone on one of these teams, an introduction now would mean
+            a lot.
+          </p>
+          <div class="flourish small" aria-hidden="true">· ❀ ·</div>
+          {wishlist.map((r) => (
+            <RoleEntry role={r} wish />
+          ))}
+        </section>
+      )
+    }
+
+    <section class="entry sheet" id={anchor(current.weekOf)}>
+      <span class="tape tape-c" aria-hidden="true"></span>
+      <div class="entry-head">
+        <p class="date script">week of {weekLong(current.weekOf)}</p>
+        <span class="entry-no mono">Entry {current.no} · {current.roles.length} roles</span>
+      </div>
+      <h2>{current.title}</h2>
+      {current.note && <p class="entry-note">{current.note}</p>}
+      <div class="flourish small" aria-hidden="true">· ✿ ·</div>
+      {current.roles.map((r) => <RoleEntry role={r} />)}
+    </section>
+
+    {
+      past.length > 0 && (
+        <section class="past">
+          <p class="past-title script">earlier pages</p>
+          {past.map((e) => (
+            <details class="entry sheet folded" id={anchor(e.weekOf)}>
+              <summary>
+                <span>
+                  <span class="date script">week of {weekLong(e.weekOf)}</span>
+                  <span class="past-head">{e.title}</span>
+                </span>
+                <span class="entry-no mono">Entry {e.no} · {e.roles.length} roles ▾</span>
+              </summary>
+              <ul class="simple">
+                {e.roles.map((r) => (
+                  <li>
+                    <span>
+                      <b>{r.company}</b> · <i>{r.title}</i>
+                    </span>
+                    <span class="sid mono">{r.req ? `ID ${r.req}` : 'No ID'}</span>
+                    <button type="button" class="mini help" data-company={r.company} data-title={r.title} data-req={r.req ?? ''} aria-label={`Know someone at ${r.company}?`}>
+                      ♡
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ))}
+        </section>
+      )
+    }
+
+    </main>
+    </div>
+
+    <footer class="foot">
+      <div class="flourish" aria-hidden="true">✿ · ❀ · ✿</div>
+      <p class="script">made with care, and a little help from Claude Code</p>
+      <p class="mono small">
+        <a href={profile.portfolio} target="_blank" rel="noopener">portfolio</a> ·
+        <a href={profile.linkedin} target="_blank" rel="noopener">linkedin</a> ·
+        <a href={gmail('Hello from your job hunt journal')} target="_blank" rel="noopener">email</a>
+      </p>
+    </footer>
+  </div>
+
+  <dialog class="help-dialog" aria-labelledby="help-title">
+    <form method="dialog" class="help-inner">
+      <span class="tape tape-c" aria-hidden="true"></span>
+      <p class="script note-title">thank you for helping ♡</p>
+      <h3 id="help-title">A note you can forward</h3>
+      <p class="help-sub">Copy this and send it to your contact, or write to me directly at <b>{profile.email}</b>.</p>
+      <textarea class="blurb" rows="9" readonly></textarea>
+      <div class="help-actions">
+        <button type="button" class="btn btn-accent copy">Copy message</button>
+        <a class="btn mail" href="#" target="_blank" rel="noopener">Email me</a>
+        <a class="btn" href={profile.linkedin} target="_blank" rel="noopener">LinkedIn</a>
+        <button class="btn" value="close">Close</button>
+      </div>
+      <p class="copied mono" aria-live="polite"></p>
+    </form>
+  </dialog>
+
+  <script type="application/json" id="profile-data" set:html={JSON.stringify(profile)} />
+</Base>
+
+<style>
+  .wrap {
+    max-width: 1280px;
+  }
+  .pages-index {
+    display: none;
+  }
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 0 6px;
+  }
+  .hello {
+    font-size: 1.3rem;
+    color: var(--accent);
+  }
+  .theme {
+    font-family: var(--script);
+    font-size: 1.15rem;
+    background: var(--sheet);
+    color: var(--ink-2);
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+    padding: 2px 14px 4px;
+    cursor: pointer;
+  }
+
+  /* Washi tape strips */
+  .tape {
+    position: absolute;
+    height: 22px;
+    width: 96px;
+    background: repeating-linear-gradient(
+      45deg,
+      color-mix(in srgb, var(--accent) 30%, transparent) 0 6px,
+      color-mix(in srgb, var(--accent) 18%, transparent) 6px 12px
+    );
+    opacity: 0.9;
+  }
+  .tape-l {
+    top: -10px;
+    left: 28px;
+    transform: rotate(-6deg);
+  }
+  .tape-r {
+    top: -10px;
+    right: 28px;
+    transform: rotate(5deg);
+    background: repeating-linear-gradient(
+      45deg,
+      color-mix(in srgb, var(--lilac) 38%, transparent) 0 6px,
+      color-mix(in srgb, var(--lilac) 22%, transparent) 6px 12px
+    );
+  }
+  .tape-lilac {
+    background: repeating-linear-gradient(
+      45deg,
+      color-mix(in srgb, var(--lilac) 38%, transparent) 0 6px,
+      color-mix(in srgb, var(--lilac) 22%, transparent) 6px 12px
+    );
+  }
+  .wish {
+    background: color-mix(in srgb, var(--lilac-soft) 55%, var(--sheet));
+  }
+  .tape-c {
+    top: -11px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-2deg);
+  }
+
+  .cover {
+    position: relative;
+    text-align: center;
+    background: var(--sheet);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    padding: 46px clamp(20px, 6vw, 64px) 34px;
+    margin-top: 16px;
+  }
+  .owner {
+    font-size: 1.7rem;
+    color: var(--accent);
+    margin: 0;
+  }
+  .cover h1 {
+    font-size: clamp(2.6rem, 8vw, 4.4rem);
+    letter-spacing: 0.01em;
+    margin-top: -4px;
+  }
+  .sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.25rem;
+    color: var(--ink-2);
+    margin: 6px 0 0;
+  }
+  .flourish {
+    color: var(--accent);
+    letter-spacing: 0.4em;
+    margin: 18px 0;
+    font-size: 0.95rem;
+  }
+  .flourish.small {
+    margin: 10px 0 0;
+    font-size: 0.85rem;
+  }
+  .about {
+    max-width: 58ch;
+    margin: 0 auto 18px;
+    color: var(--ink-2);
+  }
+  .tracks {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 22px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .tracks li {
+    font-size: 0.82rem;
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: var(--lilac-soft);
+    border: 1px solid color-mix(in srgb, var(--lilac) 40%, transparent);
+    color: var(--ink-2);
+  }
+  .cover-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: clamp(22px, 6vw, 56px);
+    margin: 28px 0 0;
+    padding-top: 20px;
+    border-top: 1px dashed var(--line-2);
+  }
+  .stats dt {
+    font-family: var(--serif);
+    font-size: 2.4rem;
+    line-height: 1;
+  }
+  .stats dd {
+    margin: 2px 0 0;
+    font-family: var(--script);
+    font-size: 1.15rem;
+    color: var(--ink-3);
+  }
+
+  .note-card {
+    margin: 26px auto 0;
+    max-width: 640px;
+    padding: 18px 24px;
+    border: 1.5px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+    border-radius: 18px;
+    background: var(--accent-soft);
+  }
+  .note-title {
+    font-size: 1.4rem;
+    color: var(--accent-ink);
+    margin: 0 0 4px;
+  }
+  .note-card p {
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+  }
+  .thanks {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.08rem !important;
+    color: var(--ink-2);
+    margin: 0 !important;
+  }
+
+  .sheet {
+    position: relative;
+    background: var(--sheet);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    padding: 34px clamp(20px, 5vw, 48px) 18px;
+    margin-top: 40px;
+  }
+  .entry-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .date {
+    font-size: 1.35rem;
+    color: var(--accent);
+    margin: 0;
+  }
+  .entry-no {
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--ink-3);
+  }
+  .entry h2 {
+    font-size: clamp(2rem, 5vw, 2.7rem);
+    margin-top: 4px;
+  }
+  .entry-note {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.15rem;
+    color: var(--ink-2);
+    margin: 6px 0 0;
+  }
+
+  .past {
+    margin-top: 46px;
+  }
+  .past-title {
+    text-align: center;
+    font-size: 1.6rem;
+    color: var(--accent);
+    margin: 0;
+  }
+  .folded {
+    margin-top: 18px;
+    padding: 20px clamp(20px, 5vw, 48px);
+  }
+  .folded summary {
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    cursor: pointer;
+  }
+  .folded summary::-webkit-details-marker {
+    display: none;
+  }
+  .folded summary > span:first-child {
+    display: flex;
+    flex-direction: column;
+  }
+  .past-head {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.5rem;
+    line-height: 1.2;
+  }
+  .simple {
+    list-style: none;
+    padding: 0;
+    margin: 16px 0 6px;
+  }
+  .simple li {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px dashed var(--line-2);
+    font-size: 0.95rem;
+  }
+  .simple i {
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    color: var(--ink-2);
+  }
+  .sid {
+    font-size: 0.72rem;
+    color: var(--ink-3);
+  }
+  .mini {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--line-2);
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    cursor: pointer;
+  }
+
+  .foot {
+    text-align: center;
+    padding: 46px 0 50px;
+    color: var(--ink-3);
+  }
+  .foot .script {
+    font-size: 1.3rem;
+    margin: 0 0 6px;
+  }
+  .small {
+    font-size: 0.78rem;
+  }
+
+  .help-dialog {
+    border: 1px solid var(--line-2);
+    border-radius: 22px;
+    background: var(--sheet);
+    color: var(--ink);
+    padding: 0;
+    width: min(560px, calc(100vw - 32px));
+    overflow: visible;
+  }
+  .help-dialog::backdrop {
+    background: rgba(59, 47, 58, 0.35);
+  }
+  .help-inner {
+    position: relative;
+    padding: 30px 26px 22px;
+  }
+  .help-inner h3 {
+    font-size: 1.9rem;
+  }
+  .help-sub {
+    color: var(--ink-2);
+    margin: 4px 0 12px;
+  }
+  .blurb {
+    width: 100%;
+    font: inherit;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    padding: 14px;
+    border: 1px solid var(--line-2);
+    border-radius: 14px;
+    background: var(--page);
+    color: var(--ink);
+    resize: vertical;
+  }
+  .help-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .copied {
+    font-size: 0.76rem;
+    color: var(--accent-ink);
+    min-height: 1.2em;
+    margin: 10px 0 0;
+  }
+
+  @media (max-width: 560px) {
+    .simple li {
+      grid-template-columns: 1fr auto;
+    }
+    .sid {
+      grid-column: 1;
+      grid-row: 2;
+    }
+    .mini {
+      grid-row: 1 / span 2;
+      grid-column: 2;
+    }
+  }
+  /* Desktop: a wide header across the top, the note and page index beneath it, entries full width */
+  @media (min-width: 1040px) {
+    .side {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      gap: 22px;
+      align-items: stretch;
+    }
+    .cover {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      gap: 48px;
+      align-items: center;
+      text-align: left;
+      padding: 50px 56px 40px;
+    }
+    .cover h1 {
+      font-size: 4rem;
+    }
+    .about {
+      margin: 0;
+    }
+    .flourish {
+      margin: 14px 0;
+    }
+    .tracks,
+    .cover-actions,
+    .stats {
+      justify-content: flex-start;
+    }
+    .cover-right {
+      padding-left: 40px;
+      border-left: 1px dashed var(--line-2);
+    }
+    .stats {
+      gap: 40px;
+    }
+    .note-card {
+      margin: 0;
+      max-width: none;
+    }
+    .pages-index {
+      display: block;
+      background: var(--sheet);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px 22px;
+    }
+    .pages-index ul {
+      list-style: none;
+      padding: 0;
+      margin: 4px 0 0;
+    }
+    .pages-index li {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 7px 0;
+      border-top: 1px dashed var(--line-2);
+      font-size: 0.92rem;
+    }
+    .pages-index li:first-child {
+      border-top: none;
+    }
+    .pages-index a {
+      text-decoration: none;
+    }
+    .pages-index a:hover {
+      color: var(--accent-ink);
+    }
+    .pages-index .mono {
+      font-size: 0.72rem;
+      color: var(--ink-3);
+    }
+    .sheet {
+      padding: 44px 56px 24px;
+    }
+  }
+</style>
+
+<script>
+  const profile = JSON.parse(document.getElementById('profile-data')!.textContent!);
+
+  const themeBtn = document.querySelector<HTMLButtonElement>('.theme')!;
+  const isDark = () =>
+    document.documentElement.dataset.theme === 'dark' ||
+    (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+  const syncTheme = () => (themeBtn.textContent = isDark() ? 'sun' : 'moon');
+  syncTheme();
+  themeBtn.addEventListener('click', () => {
+    const next = isDark() ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try {
+      localStorage.setItem('journal-theme', next);
+    } catch (e) {}
+    syncTheme();
+  });
+
+  // "Know someone here?" dialog with a ready-made intro message
+  const dialog = document.querySelector<HTMLDialogElement>('.help-dialog')!;
+  const blurb = dialog.querySelector<HTMLTextAreaElement>('.blurb')!;
+  const mail = dialog.querySelector<HTMLAnchorElement>('.mail')!;
+  const copied = dialog.querySelector<HTMLParagraphElement>('.copied')!;
+  document.querySelectorAll<HTMLButtonElement>('.help').forEach((b) =>
+    b.addEventListener('click', () => {
+      const { company, title, req, wish } = b.dataset;
+      const role = `the ${title} role at ${company}${req ? ` (${req})` : ''}`;
+      // Wishlist roles ask for an introduction before applying
+      const ask = wish
+        ? `A friend of mine, ${profile.name}, is planning to apply for ${role} and would love an introduction before she does. ${profile.blurb} Would you be open to a quick chat with her, or referring her?`
+        : `A friend of mine, ${profile.name}, applied for ${role}. ${profile.blurb} Would you be open to taking a look or passing her resume along?`;
+      blurb.value = `Hi! ${ask}\n\nResume: ${profile.resume}\nPortfolio: ${profile.portfolio}`;
+      mail.href = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(profile.email)}&su=${encodeURIComponent(`I know someone at ${company}`)}`;
+      copied.textContent = '';
+      dialog.showModal();
+    }),
+  );
+  dialog.querySelector('.copy')!.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(blurb.value);
+      copied.textContent = 'Copied ♡ Paste it into Slack, email or LinkedIn.';
+    } catch {
+      blurb.select();
+      copied.textContent = 'Select the text above and copy it.';
+    }
+  });
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+</script>

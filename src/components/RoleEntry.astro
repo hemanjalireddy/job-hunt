@@ -1,0 +1,198 @@
+---
+import type { Role } from '../issues/types';
+
+interface Props {
+  role: Role;
+  // Wishlist roles I haven't applied to yet
+  wish?: boolean;
+}
+const { role, wish = false } = Astro.props;
+---
+
+<article class="role">
+  <header class="role-head">
+    <div>
+      <h3 class="company">
+        {role.url ? <a href={role.url} target="_blank" rel="noopener">{role.company}</a> : role.company}
+      </h3>
+      <p class="title">{role.title}</p>
+    </div>
+    <span class="tags">
+      {wish && <span class="wish-tag script">hoping for an intro first</span>}
+      <span class="id mono">{role.req ? `ID ${role.req}` : 'No role ID'}</span>
+    </span>
+  </header>
+
+  {
+    role.contribute && (
+      <div class="contrib">
+        <p class="contrib-label script">how I could contribute</p>
+        <ul>
+          {role.contribute.map((c) => (
+            <li>
+              <span class="jd">
+                <span class="jd-tag mono">they need</span>
+                {c.jd}
+              </span>
+              <span class="mine">
+                <span class="mine-tag mono">I’ve done</span>
+                {c.mine}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
+  <div class="role-actions">
+    <button type="button" class="btn btn-accent help" data-company={role.company} data-title={role.title} data-req={role.req ?? ''} data-wish={wish ? 'yes' : ''}>
+      Know someone here? ♡
+    </button>
+    {
+      role.url && (
+        <a class="posting" href={role.url} target="_blank" rel="noopener">
+          View the posting ↗
+        </a>
+      )
+    }
+  </div>
+</article>
+
+<style>
+  .role {
+    padding: 26px 0 28px;
+  }
+  .role + :global(.role) {
+    border-top: 1px dashed var(--line-2);
+  }
+  .role-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .company {
+    font-size: 1.85rem;
+  }
+  .company a {
+    text-decoration: none;
+  }
+  .company a:hover {
+    color: var(--accent-ink);
+  }
+  .title {
+    margin: 2px 0 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.2rem;
+    color: var(--ink-2);
+  }
+  .tags {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .wish-tag {
+    font-size: 1.05rem;
+    color: var(--accent-ink);
+    margin-top: 4px;
+  }
+  .id {
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    padding: 4px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+    margin-top: 6px;
+  }
+  .contrib {
+    margin-top: 16px;
+  }
+  .contrib-label {
+    font-size: 1.25rem;
+    color: var(--accent);
+    margin: 0 0 8px;
+  }
+  .contrib ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 12px;
+  }
+  .contrib li {
+    display: grid;
+    gap: 4px;
+    padding: 12px 16px 12px 34px;
+    position: relative;
+    background: var(--page);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .contrib li::before {
+    content: '✿';
+    position: absolute;
+    left: 13px;
+    top: 12px;
+    color: var(--accent);
+    font-size: 0.85rem;
+  }
+  .jd,
+  .mine {
+    display: block;
+    font-size: 0.94rem;
+    line-height: 1.5;
+  }
+  .jd {
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .mine {
+    color: var(--ink-2);
+  }
+  .jd-tag,
+  .mine-tag {
+    display: inline-block;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 1px 8px;
+    border-radius: 999px;
+    margin-right: 8px;
+    vertical-align: 2px;
+    font-weight: 400;
+  }
+  .jd-tag {
+    background: var(--lilac-soft);
+    color: var(--ink-2);
+    border: 1px solid color-mix(in srgb, var(--lilac) 45%, transparent);
+  }
+  .mine-tag {
+    background: var(--sage-soft);
+    color: var(--ink-2);
+    border: 1px solid color-mix(in srgb, var(--sage) 55%, transparent);
+  }
+  .role-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+  .posting {
+    font-size: 0.86rem;
+    color: var(--ink-2);
+  }
+  /* Wide screens: contribution points two per row */
+  @media (min-width: 1040px) {
+    .contrib ul {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
