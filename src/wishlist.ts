@@ -14,7 +14,7 @@ export const wishlist: Role[] = [
       },
       {
         jd: 'Build, test and ship integrations through deployment',
-        mine: 'Shipped Dockerized FastAPI services on AWS, gated by an automated regression suite I built.',
+        mine: 'Shipped Dockerized FastAPI services on AWS.'
       },
       {
         jd: 'Debug across systems using logs, tests and systematic investigation',
